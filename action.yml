@@ -1,0 +1,32 @@
+name: 'Helm Uninstall'
+author: DevOps
+description: Uninstall helm 
+
+inputs:
+  namespace:
+    description: 'Helm Namespace'
+    required: true   
+  release_name:
+    description: 'Release name'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Authenticate with DEV
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-east-1
+          
+    - name: Uninstall Helm
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+        RELEASE_NAME: ${{ inputs.release_name }}
+      run: |
+        results_array=$(kubectl get pods -n ${NAMESPACE} -o custom-columns=HELM:.status.containerStatuses[*].name --no-headers | grep -w "${RELEASE_NAME}" || true)
+        if [[ -n "${results_array[@]}" ]]; then
+          helm uninstall -n "${NAMESPACE}" "${RELEASE_NAME}"
+          echo "helm $RELEASE_NAME uninstalled on $NAMESPACE" 
+        fi
+        
+      shell: bash
